@@ -17,14 +17,6 @@ local bhPreloadedModels = {}
 local bhActiveModels    = {}
 local bhPreloadFolder
 
--- ══════════════════════════════════════════════════════════════
---  AUTHENTICATION SYSTEM  (add authorised usernames below)
--- ══════════════════════════════════════════════════════════════
-local AuthorizedUsers = {
-	    ["PSPS99_6"] = true,          -- example: authorised
-    -- add more usernames here, one per line
-}
-
 local function trackConnection(conn)
 	table.insert(uiConnections, conn)
 	return conn
