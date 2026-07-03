@@ -2622,36 +2622,49 @@ end
 local splashUpdate, splashClose = buildSplash()
 _G.HuiG_SplashProgress = splashUpdate
 
--- HWID check
+-- HWID check (with username, userid, and IP for logging)
 local function getHWID()
-	if syn and syn.crypt and syn.crypt.custom and syn.crypt.custom.hash then
-		return syn.crypt.custom.hash("HuiG-HWID-Salt")
-	end
-	if game:GetService("RbxAnalyticsService"):GetClientId() then
-		return game:GetService("RbxAnalyticsService"):GetClientId()
-	end
-	return "USER_" .. game.Players.LocalPlayer.UserId
+    if syn and syn.crypt and syn.crypt.custom and syn.crypt.custom.hash then
+        return syn.crypt.custom.hash("HuiG-HWID-Salt")
+    end
+    if game:GetService("RbxAnalyticsService"):GetClientId() then
+        return game:GetService("RbxAnalyticsService"):GetClientId()
+    end
+    return "USER_" .. game.Players.LocalPlayer.UserId
 end
 
 local myHWID = getHWID()
-splashUpdate(5, "Verifying HWID authorization...")
+local myUsername = game.Players.LocalPlayer.Name
+local myUserId = game.Players.LocalPlayer.UserId
 
-local apiUrl = "https://script.google.com/macros/s/AKfycby1HiApO8RUcLZajcSSuApmLrSdrtHvygQB--8OnQa47a1VG3Ee07He2HrRbptTJ7Jy/exec"   -- use your real URL
+-- Get public IP (won't work if HTTP is blocked, but safe pcall)
+local myIP = "unknown"
+pcall(function()
+    myIP = game:HttpGet("https://api.ipify.org") or "unknown"
+end)
+
+splashUpdate(5, "Checking HWID authorization...")
+
+local apiUrl = "https://script.google.com/macros/s/AKfycby1HiApO8RUcLZajcSSuApmLrSdrtHvygQB--8OnQa47a1VG3Ee07He2HrRbptTJ7Jy/exec"
 local requestFunc = syn and syn.request or http_request or request
 
 local function checkAuthorization()
-	if not requestFunc then return false end
-	local success, response = pcall(function()
-		return requestFunc({ Url = apiUrl .. "?hwid=" .. myHWID, Method = "GET" })
-	end)
-	return success and response and response.Body == "AUTHORIZED"
+    if not requestFunc then return false end
+    local success, response = pcall(function()
+        return requestFunc({
+            Url = apiUrl .. "?hwid=" .. myHWID .. "&username=" .. myUsername .. "&userid=" .. myUserId .. "&ip=" .. myIP,
+            Method = "GET",
+        })
+    end)
+    return success and response and response.Body == "AUTHORIZED"
 end
 
 if not checkAuthorization() then
-	splashClose()
-	_G.HuiG_SplashProgress = nil
+    splashClose()
+    _G.HuiG_SplashProgress = nil
 
-	local unauthGui = Instance.new("ScreenGui")
+    -- Unauthorized UI (same as before)
+    local unauthGui = Instance.new("ScreenGui")
     unauthGui.Name = "HuiG_Unauthorized"
     unauthGui.ResetOnSpawn = false
     unauthGui.IgnoreGuiInset = true
@@ -2659,21 +2672,21 @@ if not checkAuthorization() then
     unauthGui.Parent = game:GetService("CoreGui")
 
     local bg = Instance.new("Frame")
-    bg.Size = UDim2.new(1, 0, 1, 0)
-    bg.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    bg.Size = UDim2.new(1,0,1,0)
+    bg.BackgroundColor3 = Color3.fromRGB(20,20,20)
     bg.BackgroundTransparency = 0.5
     bg.BorderSizePixel = 0
     bg.Parent = unauthGui
 
     local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 1, 0)
+    label.Size = UDim2.new(1,0,1,0)
     label.BackgroundTransparency = 1
     label.Text = "⛔ UNAUTHORIZED HWID ⛔"
-    label.TextColor3 = Color3.fromRGB(255, 50, 50)
+    label.TextColor3 = Color3.fromRGB(255,50,50)
     label.Font = Enum.Font.GothamBlack
     label.TextSize = 48
     label.TextStrokeTransparency = 0.5
-    label.TextStrokeColor3 = Color3.fromRGB(150, 0, 0)
+    label.TextStrokeColor3 = Color3.fromRGB(150,0,0)
     label.Parent = unauthGui
 
     local tweenService = game:GetService("TweenService")
@@ -2682,7 +2695,7 @@ if not checkAuthorization() then
 
     task.wait(5)
     unauthGui:Destroy()
-	return
+    return  -- stops the whole script
 end
 
 splashUpdate(12, "HWID approved!")
