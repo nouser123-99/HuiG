@@ -1667,6 +1667,94 @@ local function buildTargetTab()
 end
 
 -- ============================================================
+--  PUPPET TAB (dark overlay + "MAINTENANCE" label)
+-- ============================================================
+local function buildPuppetTab()
+    local PuppetTab = Window:AddTab("Puppet", "user")
+    local SelectGroup = PuppetTab:AddLeftGroupbox("Target Selection")
+    local PoseGroup = PuppetTab:AddLeftGroupbox("Pose Controls")
+    local ActionGroup = PuppetTab:AddRightGroupbox("Actions")
+
+    -- Target Selection
+    SelectGroup:AddDropdown("PuppetTargetDropdown", {
+        Text = "Select Puppet Target",
+        Values = {},
+        Default = "",
+        Callback = function() end,
+    })
+    SelectGroup:AddButton("Refresh", function() end)
+
+    -- Pose Controls
+    PoseGroup:AddSlider("PuppetOffX", { Text = "Offset X", Default = 0, Min = -15, Max = 15, Rounding = 1, Suffix = " studs", Callback = function() end })
+    PoseGroup:AddSlider("PuppetOffY", { Text = "Offset Y", Default = 0, Min = -15, Max = 15, Rounding = 1, Suffix = " studs", Callback = function() end })
+    PoseGroup:AddSlider("PuppetOffZ", { Text = "Offset Z", Default = 0, Min = -15, Max = 15, Rounding = 1, Suffix = " studs", Callback = function() end })
+    PoseGroup:AddSlider("PuppetRotX", { Text = "Rotate X", Default = 0, Min = -180, Max = 180, Rounding = 0, Suffix = "°", Callback = function() end })
+    PoseGroup:AddSlider("PuppetRotY", { Text = "Rotate Y", Default = 0, Min = -180, Max = 180, Rounding = 0, Suffix = "°", Callback = function() end })
+    PoseGroup:AddSlider("PuppetRotZ", { Text = "Rotate Z", Default = 0, Min = -180, Max = 180, Rounding = 0, Suffix = "°", Callback = function() end })
+    PoseGroup:AddDropdown("PuppetPartSelect", {
+        Text = "Body Part",
+        Values = {"Head", "Left Arm", "Right Arm", "Left Leg", "Right Leg"},
+        Default = "Head",
+        Callback = function() end,
+    })
+
+    -- Actions
+    ActionGroup:AddToggle("PuppetEnable", { Text = "Apply Puppet", Default = false, Callback = function() end })
+    ActionGroup:AddButton("Reset Current Part", function() end)
+    ActionGroup:AddButton("Reset All Parts", function() end)
+    ActionGroup:AddButton("Fling Target", function() end)
+
+    -- Overlay
+    task.defer(function()
+        local screenGui = Library.ScreenGui
+        if not screenGui then return end
+        local mainFrame = screenGui:FindFirstChild("Main")
+        if not mainFrame then return end
+        local contentFrame = nil
+        for _, child in ipairs(mainFrame:GetChildren()) do
+            if child:IsA("Frame") and child.Size.X.Scale > 0.5 then
+                contentFrame = child
+                break
+            end
+        end
+        if not contentFrame then contentFrame = mainFrame end
+
+        local overlay = Instance.new("Frame")
+        overlay.Position = UDim2.new(0.12, 0, 200, 70)
+        overlay.Size = UDim2.new(1, 0, 1, 0)
+        overlay.BackgroundColor3 = Color3.new(0, 0, 0)
+        overlay.BackgroundTransparency = 1
+        overlay.BorderSizePixel = 0
+        overlay.ZIndex = 9999
+        overlay.Active = true
+        overlay.Visible = false
+        overlay.Parent = contentFrame
+
+        local label = Instance.new("TextLabel")
+        label.AnchorPoint = Vector2.new(0.5, 0.5)
+        label.Position = UDim2.new(0.5, 0, 0.5, 0)
+        label.Size = UDim2.new(1, 0, 0, 60)
+        label.BackgroundTransparency = 1
+        label.Text = "🔧 Maintenance"
+        label.TextColor3 = Color3.new(1, 1, 1)
+        label.TextSize = 42
+        label.Font = Enum.Font.GothamBold
+        label.TextStrokeTransparency = 0.3
+        label.TextStrokeColor3 = Color3.new(0, 0, 0)
+        label.ZIndex = 10000
+        label.Parent = overlay
+
+        local lastTab = nil
+        trackConnection(RunService.Heartbeat:Connect(function()
+            local cur = Library.ActiveTab
+            if cur == lastTab then return end
+            lastTab = cur
+            overlay.Visible = (cur == PuppetTab)
+        end))
+    end)
+end
+
+-- ============================================================
 --  VISUALS TAB (unchanged, omitted for brevity)
 -- ============================================================
 local function buildVisualsTab()
@@ -2708,8 +2796,9 @@ splashClose()
 _G.HuiG_SplashProgress = nil
 
 buildHomeTab()
-buildDefenseTab()          -- new
-buildTargetTab()           -- now includes all new kick features
+buildDefenseTab()
+buildTargetTab()
+buildPuppetTab()          -- <-- add this
 buildVisualsTab()
 buildSoundsTab()
 buildMiscTab()
